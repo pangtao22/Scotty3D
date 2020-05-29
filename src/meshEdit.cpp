@@ -1,5 +1,6 @@
 #include <float.h>
 #include <assert.h>
+#include <vector>
 #include "meshEdit.h"
 #include "mutablePriorityQueue.h"
 #include "error_dialog.h"
@@ -50,13 +51,114 @@ FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
   return FaceIter();
 }
 
+std::vector<HalfedgeIter> findHalfedgesForFaceContaining(HalfedgeIter h) {
+  std::vector<HalfedgeIter> h_list {h};
+  auto f = h->next();
+  while(f != h) {
+    h_list.push_back(f);
+    f = f->next();
+  }
+  return h_list;
+}
+
 EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
   // TODO: (meshEdit)
   // This method should flip the given edge and return an iterator to the
   // flipped edge.
+  auto h0 = e0->halfedge();
+  auto h3 = h0->twin();
+  auto h0_list = findHalfedgesForFaceContaining(h0);
+  auto h3_list = findHalfedgesForFaceContaining(h3);
+  if (h0_list.size() != 3 || h3_list.size() !=3) {
+    return e0;
+  }
 
-  showError("flipEdge() not implemented.");
-  return EdgeIter();
+  auto h1 = h0_list[1];
+  auto h2 = h0_list[2];
+  auto h4 = h3_list[1];
+  auto h5 = h3_list[2];
+
+  auto h6 = h1->twin();
+  auto h7 = h2->twin();
+  auto h8 = h4->twin();
+  auto h9 = h5->twin();
+
+  // Vertices
+  VertexIter v0 = h0->vertex();
+  VertexIter v1 = h1->vertex();
+  VertexIter v2 = h5->vertex();
+  VertexIter v3 = h2->vertex();
+
+  // Edges
+  EdgeIter e1 = h5->edge();
+  EdgeIter e2 = h4->edge();
+  EdgeIter e3 = h2->edge();
+  EdgeIter e4 = h1->edge();
+
+  // Faces
+  FaceIter f0 = h0->face();
+  FaceIter f1 = h3->face();
+
+  // Reassign elements.
+  h0->next() = h1;
+  h0->twin() = h3;
+  h0->vertex() = v2;
+  h0->edge() = e0;
+  h0->face() = f0;
+
+  h1->next() = h2;
+  h1->twin() = h7;
+  h1->vertex() = v3;
+  h1->edge() = e3;
+  h1->face() = f0;
+
+  h2->next() = h0;
+  h2->twin() = h8;
+  h2->vertex() = v0;
+  h2->edge() = e2;
+  h2->face() = f0;
+
+  h3->next() = h4;
+  h3->twin() = h0;
+  h3->vertex() = v3;
+  h3->edge() = e0;
+  h3->face() = f1;
+
+  h4->next() = h5;
+  h4->twin() = h9;
+  h4->vertex() = v2;
+  h4->edge() = e1;
+  h4->face() = f1;
+
+  h5->next() = h3;
+  h5->twin() = h6;
+  h5->vertex() = v1;
+  h5->edge() = e4;
+  h5->face() = f1;
+
+  h6->twin() = h5;
+  h7->twin() = h1;
+  h8->twin() = h2;
+  h9->twin() = h4;
+
+  // Vertices
+  v0->halfedge() = h2;
+  v1->halfedge() = h5;
+  v2->halfedge() = h4;
+  v3->halfedge() = h3;
+
+  // EDGES
+  e0->halfedge() = h0;
+  e1->halfedge() = h4;
+  e2->halfedge() = h2;
+  e3->halfedge() = h1;
+  e4->halfedge() = h5;
+
+  // Faces
+  f0->halfedge() = h0;
+  f1->halfedge() = h3;
+
+  return e0;
 }
 
 void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
@@ -360,7 +462,55 @@ void HalfedgeMesh::splitPolygons(vector<FaceIter>& fcs) {
 void HalfedgeMesh::splitPolygon(FaceIter f) {
   // TODO: (meshedit) 
   // Triangulate a polygonal face
-  showError("splitPolygon() not implemented.");
+//  cout << "I'm here! " << f->degree() << endl;
+
+  // Get vertices.
+  std::vector<VertexIter> v_list;
+  std::vector<EdgeIter> e_list;
+  std::vector<HalfedgeIter> he_list;
+  HalfedgeIter h = f->halfedge();
+  do {
+    v_list.push_back(h->vertex());
+    e_list.push_back(h->edge());
+    he_list.push_back(h);
+    h = h->next();
+  } while(h != f->halfedge());
+
+  const int nv = v_list.size();
+  if(nv == 3) {
+    return;
+  }
+
+  FaceIter current_face = f;
+  HalfedgeIter current_he = f->halfedge();
+
+  HalfedgeIter h0n, h1n;
+  for(int i = 2; i < nv - 1; i++) {
+    auto en = newEdge();
+    auto fn = newFace();
+    h0n = newHalfedge();
+    h1n = newHalfedge();
+
+    h0n->twin() = h1n;
+    h0n->vertex() = v_list[i];
+    h0n->edge() = en;
+    h0n->face() = current_face;
+    h0n->next() = current_he;
+
+    h1n->twin() = h0n;
+    h1n->vertex() = v_list[0];
+    h1n->edge() = en;
+    h1n->face() = fn;
+    h1n->next() = he_list[i];
+
+    en->halfedge() = h0n;
+    fn->halfedge() = h1n;
+    he_list[i-1]->next() = h0n;
+    he_list[nv - 1]->next() = h1n;
+
+    current_face = fn;
+    current_he = h1n;
+  }
 }
 
 EdgeRecord::EdgeRecord(EdgeIter& _edge) : edge(_edge) {
