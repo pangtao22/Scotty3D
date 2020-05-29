@@ -65,98 +65,100 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
   // TODO: (meshEdit)
   // This method should flip the given edge and return an iterator to the
   // flipped edge.
-  auto h0 = e0->halfedge();
-  auto h3 = h0->twin();
-  auto h0_list = findHalfedgesForFaceContaining(h0);
-  auto h3_list = findHalfedgesForFaceContaining(h3);
-  if (h0_list.size() != 3 || h3_list.size() !=3) {
-    return e0;
-  }
+  auto h00 = e0->halfedge();
+  auto h01 = h00->twin();
+  auto h00_list = findHalfedgesForFaceContaining(h00);
+  auto h01_list = findHalfedgesForFaceContaining(h01);
+//  if (h00_list.size() != 3 || h01_list.size() !=3) {
+//    return e0;
+//  }
 
-  auto h1 = h0_list[1];
-  auto h2 = h0_list[2];
-  auto h4 = h3_list[1];
-  auto h5 = h3_list[2];
+  auto h001 = h00_list[1];
+  auto h002 = h00_list[2];
+  auto h00n = h00_list.back();
+  auto h011 = h01_list[1];
+  auto h012 = h01_list[2];
+  auto h01n = h01_list.back();
 
-  auto h6 = h1->twin();
-  auto h7 = h2->twin();
-  auto h8 = h4->twin();
-  auto h9 = h5->twin();
+//  auto h6 = h001->twin();
+//  auto h7 = h00n->twin();
+//  auto h8 = h011->twin();
+//  auto h9 = h01n->twin();
 
   // Vertices
-  VertexIter v0 = h0->vertex();
-  VertexIter v1 = h1->vertex();
-  VertexIter v2 = h5->vertex();
-  VertexIter v3 = h2->vertex();
+  VertexIter v0 = h00->vertex();
+  VertexIter v1 = h01->vertex();
+  VertexIter v2 = h012->vertex();
+  VertexIter v3 = h002->vertex();
 
   // Edges
-  EdgeIter e1 = h5->edge();
-  EdgeIter e2 = h4->edge();
-  EdgeIter e3 = h2->edge();
-  EdgeIter e4 = h1->edge();
+  EdgeIter e1 = h01n->edge();
+  EdgeIter e2 = h011->edge();
+  EdgeIter e3 = h00n->edge();
+  EdgeIter e4 = h001->edge();
 
   // Faces
-  FaceIter f0 = h0->face();
-  FaceIter f1 = h3->face();
+  FaceIter f0 = h00->face();
+  FaceIter f1 = h01->face();
 
   // Reassign elements.
-  h0->next() = h1;
-  h0->twin() = h3;
-  h0->vertex() = v2;
-  h0->edge() = e0;
-  h0->face() = f0;
+  h00->next() = h002;
+  h00->twin() = h01;
+  h00->vertex() = v2;
+  h00->edge() = e0;
+  h00->face() = f0;
 
-  h1->next() = h2;
-  h1->twin() = h7;
-  h1->vertex() = v3;
-  h1->edge() = e3;
-  h1->face() = f0;
+  h001->next() = h01;
+//  h001->twin() = h7;
+//  h001->vertex() = v3;
+//  h001->edge() = e3;
+  h001->face() = f1;
 
-  h2->next() = h0;
-  h2->twin() = h8;
-  h2->vertex() = v0;
-  h2->edge() = e2;
-  h2->face() = f0;
+  h00n->next() = h011;
+//  h00n->twin() = h8;
+//  h00n->vertex() = v0;
+//  h00n->edge() = e2;
+//  h00n->face() = f0;
 
-  h3->next() = h4;
-  h3->twin() = h0;
-  h3->vertex() = v3;
-  h3->edge() = e0;
-  h3->face() = f1;
+  h01->next() = h012;
+  h01->twin() = h00;
+  h01->vertex() = v3;
+  h01->edge() = e0;
+  h01->face() = f1;
 
-  h4->next() = h5;
-  h4->twin() = h9;
-  h4->vertex() = v2;
-  h4->edge() = e1;
-  h4->face() = f1;
+  h011->next() = h00;
+//  h011->twin() = h9;
+//  h011->vertex() = v2;
+//  h011->edge() = e1;
+  h011->face() = f0;
 
-  h5->next() = h3;
-  h5->twin() = h6;
-  h5->vertex() = v1;
-  h5->edge() = e4;
-  h5->face() = f1;
+  h01n->next() = h001;
+//  h01n->twin() = h6;
+//  h01n->vertex() = v1;
+//  h01n->edge() = e4;
+//  h01n->face() = f1;
 
-  h6->twin() = h5;
-  h7->twin() = h1;
-  h8->twin() = h2;
-  h9->twin() = h4;
+//  h6->twin() = h01n;
+//  h7->twin() = h001;
+//  h8->twin() = h00n;
+//  h9->twin() = h011;
 
   // Vertices
-  v0->halfedge() = h2;
-  v1->halfedge() = h5;
-  v2->halfedge() = h4;
-  v3->halfedge() = h3;
+  v0->halfedge() = h011;
+  v1->halfedge() = h001;
+  v2->halfedge() = h00;
+  v3->halfedge() = h01;
 
   // EDGES
-  e0->halfedge() = h0;
-  e1->halfedge() = h4;
-  e2->halfedge() = h2;
-  e3->halfedge() = h1;
-  e4->halfedge() = h5;
+//  e0->halfedge() = h00;
+//  e1->halfedge() = h01n;
+//  e2->halfedge() = h011;
+//  e3->halfedge() = h00n;
+//  e4->halfedge() = h001;
 
   // Faces
-  f0->halfedge() = h0;
-  f1->halfedge() = h3;
+  f0->halfedge() = h00;
+  f1->halfedge() = h01;
 
   return e0;
 }
