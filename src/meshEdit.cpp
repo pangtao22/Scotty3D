@@ -7,6 +7,27 @@
 
 namespace CMU462 {
 
+std::vector<HalfedgeIter> findHalfedgesForVertex(HalfedgeIter h) {
+  std::vector<HalfedgeIter> h_list;
+  auto f = h;
+  do {
+    h_list.push_back(f);
+    f = f->twin()->next();
+  } while(f != h);
+
+  return h_list;
+}
+
+std::vector<HalfedgeIter> findHalfedgesForFace(HalfedgeIter h) {
+  std::vector<HalfedgeIter> h_list {h};
+  auto f = h->next();
+  while(f != h) {
+    h_list.push_back(f);
+    f = f->next();
+  }
+  return h_list;
+}
+
 VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
   // TODO: (meshEdit)
   // This method should split the given edge and return an iterator to the
@@ -21,9 +42,122 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   // TODO: (meshEdit)
   // This method should collapse the given edge and return an iterator to
   // the new vertex created by the collapse.
+  auto h00 = e->halfedge();
+  auto h01 = h00->twin();
+  auto f0_hlist = findHalfedgesForFace(h00);
+  auto f1_hlist = findHalfedgesForFace(h01);
+  auto v0_hlist = findHalfedgesForFace(h00);
 
-  showError("collapseEdge() not implemented.");
-  return VertexIter();
+  auto h001 = f0_hlist[1];
+  auto h00n = f0_hlist.back();
+  auto h011 = f1_hlist[1];
+  auto h01n = f1_hlist.back();
+
+  // Vertices
+  auto v0 = h00->vertex();
+  auto v1 = h01->vertex();
+
+  // Faces
+  auto f0 = h00->face();
+  auto f1 = h01->face();
+
+
+  // Reassign elements.
+  v1->position = (v0->position + v1->position) / 2;
+
+  // Related to v0
+  auto h0i = h00;
+  do {
+    h0i = h0i->twin()->next();
+    h0i->vertex() = v1;
+//    cout << h0i->getInfo()[2] << endl;
+  } while(h0i != h00);
+
+  // Related to h00
+  h00n->next() = h001;  // h00n->next() = h00
+  f0->halfedge() = h001;
+  v0->halfedge() = h011;
+
+  // Related to h01
+  h01n->next() = h011;
+  f1->halfedge() = h01n;
+  v1->halfedge() = h001;
+
+
+  // delete
+  deleteHalfedge(h00);
+  deleteHalfedge(h01);
+  deleteEdge(e);
+  deleteVertex(v0);
+
+  if(f0_hlist.size() == 3) {
+    auto e1 = h00n->edge();
+    auto h00n_twin = h00n->twin();
+
+    //  h00n->next(): Don't worry about it?
+    //  h00n->twin(): to be deleted.
+    h00n->vertex()->halfedge() = h001->twin();
+    //  h00n->edge(): to be deleted.
+    //  h00n->face(): to be deleted.
+    // h00n->prev:
+    h001->next() = h00n->twin()->next();
+
+    //  h00n->twin()->next(): Don't worry about it?
+    //  h00n->twin()->twin(): to be deleted.
+    //  h00n->twin()->vertex(): v1, v1->halfedge() is h001.
+    //  h00n->twin()->edge(): e1, to be deleted.
+    h00n->twin()->face()->halfedge() = h00n->twin()->next();
+    // h00n->twin()->prev:
+    auto v1_hlist = findHalfedgesForVertex(h00n->twin());
+    v1_hlist.back()->twin()->next() = h001;
+
+    h001->face() = h00n_twin->face();
+
+    deleteHalfedge(h00n);
+    deleteHalfedge(h00n_twin);
+    deleteEdge(e1);
+    if(f0->isBoundary()) {
+      deleteBoundary(f0);
+    } else {
+      deleteFace(f0);
+    }
+  }
+
+  if(f1_hlist.size() == 3) {
+    auto e2 = h011->edge();
+    auto h011_twin = h011->twin();
+
+    //  h011->next(): Don't worry about it?
+    //  h011->twin(): to be deleted.
+    //  h011->vertex()->halfedge(): v1, v1->halfedge() is h001.
+    //  h011->edge(): to be deleted.
+    //  h011->face(): to be deleted.
+    //  h011->prev:
+    h01n->next() = h011_twin->next();
+
+    //  h011_twin->next(): Don't worry about it?
+    //  h011_twin->twin(): to be deleted.
+    h011_twin->vertex()->halfedge() = h01n;
+    //  h011_twin->edge(): e1, to be deleted.
+    h011_twin->face()->halfedge() = h01n;
+    // h011_twin->prev:
+    auto v3_hlist = findHalfedgesForVertex(h011_twin);
+    v3_hlist.back()->twin()->next() = h01n;
+
+    h01n->face() = h011_twin->face();
+
+    deleteHalfedge(h011);
+    deleteHalfedge(h011_twin);
+    deleteEdge(e2);
+    if(f1->isBoundary()) {
+      deleteBoundary(f1);
+    } else {
+      deleteFace(f1);
+    }
+  }
+
+
+  return v1;
 }
 
 VertexIter HalfedgeMesh::collapseFace(FaceIter f) {
@@ -51,27 +185,21 @@ FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
   return FaceIter();
 }
 
-std::vector<HalfedgeIter> findHalfedgesForFaceContaining(HalfedgeIter h) {
-  std::vector<HalfedgeIter> h_list {h};
-  auto f = h->next();
-  while(f != h) {
-    h_list.push_back(f);
-    f = f->next();
-  }
-  return h_list;
-}
-
 EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
   // TODO: (meshEdit)
   // This method should flip the given edge and return an iterator to the
   // flipped edge.
+  if(e0->isBoundary()) {
+    return e0;
+  }
   auto h00 = e0->halfedge();
   auto h01 = h00->twin();
-  auto h00_list = findHalfedgesForFaceContaining(h00);
-  auto h01_list = findHalfedgesForFaceContaining(h01);
-//  if (h00_list.size() != 3 || h01_list.size() !=3) {
-//    return e0;
-//  }
+  auto h00_list = findHalfedgesForFace(h00);
+  auto h01_list = findHalfedgesForFace(h01);
+
+  if (h00_list.size() < 3 || h01_list.size() < 3) {
+    return e0;
+  }
 
   auto h001 = h00_list[1];
   auto h002 = h00_list[2];
