@@ -1,9 +1,9 @@
-#include <float.h>
-#include <assert.h>
-#include <vector>
 #include "meshEdit.h"
-#include "mutablePriorityQueue.h"
 #include "error_dialog.h"
+#include "mutablePriorityQueue.h"
+#include <assert.h>
+#include <float.h>
+#include <vector>
 
 namespace CMU462 {
 
@@ -13,19 +13,37 @@ std::vector<HalfedgeIter> findHalfedgesForVertex(HalfedgeIter h) {
   do {
     h_list.push_back(f);
     f = f->twin()->next();
-  } while(f != h);
+  } while (f != h);
 
   return h_list;
 }
 
 std::vector<HalfedgeIter> findHalfedgesForFace(HalfedgeIter h) {
-  std::vector<HalfedgeIter> h_list {h};
+  std::vector<HalfedgeIter> h_list{h};
   auto f = h->next();
-  while(f != h) {
+  while (f != h) {
     h_list.push_back(f);
     f = f->next();
   }
   return h_list;
+}
+
+std::vector<FaceIter> findFaceForVertex(Vertex &v) {
+  vector<FaceIter> f_list;
+  auto h = v.halfedge();
+
+  while (true) {
+    f_list.push_back(h->face());
+    h = h->twin()->next();
+    if (h == v.halfedge()) {
+      break;
+    }
+  }
+  return f_list;
+}
+
+std::vector<FaceIter> findFaceForVertex(VertexIter v) {
+  return findFaceForVertex(*v);
 }
 
 VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
@@ -44,13 +62,17 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   // the new vertex created by the collapse.
   auto h00 = e->halfedge();
   auto h01 = h00->twin();
+  if(h01->next()->edge()->isBoundary()) {
+    h01 = e->halfedge();
+    h00 = h01->twin();
+  }
+
   auto f0_hlist = findHalfedgesForFace(h00);
   auto f1_hlist = findHalfedgesForFace(h01);
-  auto v0_hlist = findHalfedgesForFace(h00);
 
   auto h001 = f0_hlist[1];
-  auto h00n = f0_hlist.back();
   auto h011 = f1_hlist[1];
+  auto h00n = f0_hlist.back();
   auto h01n = f1_hlist.back();
 
   // Vertices
@@ -60,21 +82,27 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   // Faces
   auto f0 = h00->face();
   auto f1 = h01->face();
+//  if (dot(f0->normal(), f1->normal()) < 0) {
+//    return verticesEnd();
+//  }
+
+
+  auto v0_hlist = findHalfedgesForFace(h00);
 
 
   // Reassign elements.
-  v1->position = (v0->position + v1->position) / 2;
+  //  v1->position = (v0->position + v1->position) / 2;
 
   // Related to v0
   auto h0i = h00;
   do {
     h0i = h0i->twin()->next();
     h0i->vertex() = v1;
-//    cout << h0i->getInfo()[2] << endl;
-  } while(h0i != h00);
+    //    cout << h0i->getInfo()[2] << endl;
+  } while (h0i != h00);
 
   // Related to h00
-  h00n->next() = h001;  // h00n->next() = h00
+  h00n->next() = h001; // h00n->next() = h00
   f0->halfedge() = h001;
   v0->halfedge() = h011;
 
@@ -83,14 +111,13 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   f1->halfedge() = h01n;
   v1->halfedge() = h001;
 
-
   // delete
   deleteHalfedge(h00);
   deleteHalfedge(h01);
   deleteEdge(e);
   deleteVertex(v0);
 
-  if(f0_hlist.size() == 3) {
+  if (f0_hlist.size() == 3) {
     auto e1 = h00n->edge();
     auto h00n_twin = h00n->twin();
 
@@ -116,14 +143,14 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
     deleteHalfedge(h00n);
     deleteHalfedge(h00n_twin);
     deleteEdge(e1);
-    if(f0->isBoundary()) {
+    if (f0->isBoundary()) {
       deleteBoundary(f0);
     } else {
       deleteFace(f0);
     }
   }
 
-  if(f1_hlist.size() == 3) {
+  if (f1_hlist.size() == 3) {
     auto e2 = h011->edge();
     auto h011_twin = h011->twin();
 
@@ -149,13 +176,12 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
     deleteHalfedge(h011);
     deleteHalfedge(h011_twin);
     deleteEdge(e2);
-    if(f1->isBoundary()) {
+    if (f1->isBoundary()) {
       deleteBoundary(f1);
     } else {
       deleteFace(f1);
     }
   }
-
 
   return v1;
 }
@@ -189,7 +215,7 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
   // TODO: (meshEdit)
   // This method should flip the given edge and return an iterator to the
   // flipped edge.
-  if(e0->isBoundary()) {
+  if (e0->isBoundary()) {
     return e0;
   }
   auto h00 = e0->halfedge();
@@ -208,10 +234,10 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
   auto h012 = h01_list[2];
   auto h01n = h01_list.back();
 
-//  auto h6 = h001->twin();
-//  auto h7 = h00n->twin();
-//  auto h8 = h011->twin();
-//  auto h9 = h01n->twin();
+  //  auto h6 = h001->twin();
+  //  auto h7 = h00n->twin();
+  //  auto h8 = h011->twin();
+  //  auto h9 = h01n->twin();
 
   // Vertices
   VertexIter v0 = h00->vertex();
@@ -237,16 +263,16 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
   h00->face() = f0;
 
   h001->next() = h01;
-//  h001->twin() = h7;
-//  h001->vertex() = v3;
-//  h001->edge() = e3;
+  //  h001->twin() = h7;
+  //  h001->vertex() = v3;
+  //  h001->edge() = e3;
   h001->face() = f1;
 
   h00n->next() = h011;
-//  h00n->twin() = h8;
-//  h00n->vertex() = v0;
-//  h00n->edge() = e2;
-//  h00n->face() = f0;
+  //  h00n->twin() = h8;
+  //  h00n->vertex() = v0;
+  //  h00n->edge() = e2;
+  //  h00n->face() = f0;
 
   h01->next() = h012;
   h01->twin() = h00;
@@ -255,21 +281,21 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
   h01->face() = f1;
 
   h011->next() = h00;
-//  h011->twin() = h9;
-//  h011->vertex() = v2;
-//  h011->edge() = e1;
+  //  h011->twin() = h9;
+  //  h011->vertex() = v2;
+  //  h011->edge() = e1;
   h011->face() = f0;
 
   h01n->next() = h001;
-//  h01n->twin() = h6;
-//  h01n->vertex() = v1;
-//  h01n->edge() = e4;
-//  h01n->face() = f1;
+  //  h01n->twin() = h6;
+  //  h01n->vertex() = v1;
+  //  h01n->edge() = e4;
+  //  h01n->face() = f1;
 
-//  h6->twin() = h01n;
-//  h7->twin() = h001;
-//  h8->twin() = h00n;
-//  h9->twin() = h011;
+  //  h6->twin() = h01n;
+  //  h7->twin() = h001;
+  //  h8->twin() = h00n;
+  //  h9->twin() = h011;
 
   // Vertices
   v0->halfedge() = h011;
@@ -278,11 +304,11 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
   v3->halfedge() = h01;
 
   // EDGES
-//  e0->halfedge() = h00;
-//  e1->halfedge() = h01n;
-//  e2->halfedge() = h011;
-//  e3->halfedge() = h00n;
-//  e4->halfedge() = h001;
+  //  e0->halfedge() = h00;
+  //  e1->halfedge() = h01n;
+  //  e2->halfedge() = h011;
+  //  e3->halfedge() = h00n;
+  //  e4->halfedge() = h001;
 
   // Faces
   f0->halfedge() = h00;
@@ -351,7 +377,7 @@ void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
   // circulate in the same direction as old faces (think about the right-hand
   // rule).
   // [See subroutines for actual "TODO"s]
-  vector<vector<Index> > subDFaces;
+  vector<vector<Index>> subDFaces;
   vector<Vector3D> subDVertices;
   buildSubdivisionFaceList(subDFaces);
   buildSubdivisionVertexList(subDVertices);
@@ -376,14 +402,30 @@ void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
 void HalfedgeMesh::computeLinearSubdivisionPositions() {
   // TODO For each vertex, assign Vertex::newPosition to
   // its original position, Vertex::position.
+  for (auto &vertex : vertices) {
+    vertex.newPosition = vertex.position;
+  }
 
   // TODO For each edge, assign the midpoint of the two original
   // positions to Edge::newPosition.
+  for (auto &edge : edges) {
+    const auto &p0 = edge.halfedge()->vertex()->position;
+    const auto &p1 = edge.halfedge()->twin()->vertex()->position;
+    edge.newPosition = (p0 + p1) / 2;
+  }
 
   // TODO For each face, assign the centroid (i.e., arithmetic mean)
   // of the original vertex positions to Face::newPosition.  Note
   // that in general, NOT all faces will be triangles!
-  showError("computeLinearSubdivisionPositions() not implemented.");
+  for (auto &face : faces) {
+    auto h_list = findHalfedgesForFace(face.halfedge());
+    Vector3D p(0, 0, 0);
+
+    for (const auto &h : h_list) {
+      p += h->vertex()->position;
+    }
+    face.newPosition = p / h_list.size();
+  }
 }
 
 /**
@@ -402,11 +444,48 @@ void HalfedgeMesh::computeCatmullClarkPositions() {
   // rules. (These rules are outlined in the Developer Manual.)
 
   // TODO face
+  for (auto &face : faces) {
+    auto h_list = findHalfedgesForFace(face.halfedge());
+    Vector3D p(0, 0, 0);
+
+    for (const auto &h : h_list) {
+      p += h->vertex()->position;
+    }
+    face.newPosition = p / h_list.size();
+  }
 
   // TODO edges
+  for (auto &edge : edges) {
+    Vector3D pa = edge.halfedge()->vertex()->position;
+    Vector3D pb = edge.halfedge()->twin()->vertex()->position;
+    Vector3D pc = edge.halfedge()->face()->newPosition;
+    Vector3D pd = edge.halfedge()->twin()->face()->newPosition;
+    edge.newPosition = (pa + pb + pc + pd) / 4;
+  }
 
   // TODO vertices
-  showError("computeCatmullClarkPositions() not implemented.");
+  for (auto &vertex : vertices) {
+    Vector3D S = vertex.position;
+    Vector3D Q, R;
+
+    auto h = vertex.halfedge();
+    int n = 0;
+    while (true) {
+      Q += h->face()->newPosition;
+      R += (h->vertex()->position + h->twin()->vertex()->position) / 2;
+
+      n += 1;
+      h = h->twin()->next();
+      if (h == vertex.halfedge()) {
+        break;
+      }
+    }
+
+    Q /= n;
+    R /= n;
+
+    vertex.newPosition = (Q + 2 * R + (n - 3) * S) / n;
+  }
 }
 
 /**
@@ -418,13 +497,25 @@ void HalfedgeMesh::computeCatmullClarkPositions() {
 void HalfedgeMesh::assignSubdivisionIndices() {
   // TODO Start a counter at zero; if you like, you can use the
   // "Index" type (defined in halfedgeMesh.h)
+  Index idx = 0;
 
   // TODO Iterate over vertices, assigning values to Vertex::index
+  for (auto &vertex : vertices) {
+    vertex.index = idx;
+    idx++;
+  }
 
   // TODO Iterate over edges, assigning values to Edge::index
+  for (auto &edge : edges) {
+    edge.index = idx;
+    idx++;
+  }
 
   // TODO Iterate over faces, assigning values to Face::index
-  showError("assignSubdivisionIndices() not implemented.");
+  for (auto &face : faces) {
+    face.index = idx;
+    idx++;
+  }
 }
 
 /**
@@ -434,18 +525,29 @@ void HalfedgeMesh::assignSubdivisionIndices() {
  * of indices assigned to Vertex::newPosition, Edge::newPosition,
  * and Face::newPosition.
  */
-void HalfedgeMesh::buildSubdivisionVertexList(vector<Vector3D>& subDVertices) {
+void HalfedgeMesh::buildSubdivisionVertexList(vector<Vector3D> &subDVertices) {
   // TODO Resize the vertex list so that it can hold all the vertices.
-
+  subDVertices.resize(vertices.size() + edges.size() + faces.size());
   // TODO Iterate over vertices, assigning Vertex::newPosition to the
   // appropriate location in the new vertex list.
-
+  Index idx = 0;
+  for (auto &vertex : vertices) {
+    subDVertices[idx] = vertex.newPosition;
+    idx++;
+  }
   // TODO Iterate over edges, assigning Edge::newPosition to the appropriate
   // location in the new vertex list.
+  for (auto &edge : edges) {
+    subDVertices[idx] = edge.newPosition;
+    idx++;
+  }
 
   // TODO Iterate over faces, assigning Face::newPosition to the appropriate
   // location in the new vertex list.
-  showError("buildSubdivisionVertexList() not implemented.");
+  for (auto &face : faces) {
+    subDVertices[idx] = face.newPosition;
+    idx++;
+  }
 }
 
 /**
@@ -459,7 +561,7 @@ void HalfedgeMesh::buildSubdivisionVertexList(vector<Vector3D>& subDVertices) {
  * of (i,j,k,l), and if (i,j,k,l) is a proper quad, then (i,k,j,l)
  * will look like a bowtie.
  */
-void HalfedgeMesh::buildSubdivisionFaceList(vector<vector<Index> >& subDFaces) {
+void HalfedgeMesh::buildSubdivisionFaceList(vector<vector<Index>> &subDFaces) {
   // TODO This routine is perhaps the most tricky step in the construction of
   // a subdivision mesh (second, perhaps, to computing the actual Catmull-Clark
   // vertex positions).  Basically what you want to do is iterate over faces,
@@ -478,7 +580,19 @@ void HalfedgeMesh::buildSubdivisionFaceList(vector<vector<Index> >& subDFaces) {
   // TODO loop around face
   // TODO build lists of four indices for each sub-quad
   // TODO append each list of four indices to face list
-  showError("buildSubdivisionFaceList() not implemented.");
+  for (auto &face : faces) {
+    auto h = face.halfedge();
+    do {
+      vector<Index> indices;
+      indices.push_back(face.index);
+      indices.push_back(h->edge()->index);
+      indices.push_back(h->twin()->vertex()->index);
+      indices.push_back(h->next()->edge()->index);
+
+      subDFaces.push_back(indices);
+      h = h->next();
+    } while (h != face.halfedge());
+  }
 }
 
 FaceIter HalfedgeMesh::bevelVertex(VertexIter v) {
@@ -518,10 +632,9 @@ FaceIter HalfedgeMesh::bevelFace(FaceIter f) {
   return facesBegin();
 }
 
-
 void HalfedgeMesh::bevelFaceComputeNewPositions(
-    vector<Vector3D>& originalVertexPositions,
-    vector<HalfedgeIter>& newHalfedges, double normalShift,
+    vector<Vector3D> &originalVertexPositions,
+    vector<HalfedgeIter> &newHalfedges, double normalShift,
     double tangentialInset) {
   // TODO Compute new vertex positions for the vertices of the beveled face.
   //
@@ -543,11 +656,10 @@ void HalfedgeMesh::bevelFaceComputeNewPositions(
   //    position correponding to vertex i
   // }
   //
-
 }
 
 void HalfedgeMesh::bevelVertexComputeNewPositions(
-    Vector3D originalVertexPosition, vector<HalfedgeIter>& newHalfedges,
+    Vector3D originalVertexPosition, vector<HalfedgeIter> &newHalfedges,
     double tangentialInset) {
   // TODO Compute new vertex positions for the vertices of the beveled vertex.
   //
@@ -557,12 +669,11 @@ void HalfedgeMesh::bevelVertexComputeNewPositions(
   // The basic strategy here is to loop over the list of outgoing halfedges,
   // and use the preceding and next vertex position from the original mesh
   // (in the orig array) to compute an offset vertex position.
-
 }
 
 void HalfedgeMesh::bevelEdgeComputeNewPositions(
-    vector<Vector3D>& originalVertexPositions,
-    vector<HalfedgeIter>& newHalfedges, double tangentialInset) {
+    vector<Vector3D> &originalVertexPositions,
+    vector<HalfedgeIter> &newHalfedges, double tangentialInset) {
   // TODO Compute new vertex positions for the vertices of the beveled edge.
   //
   // These vertices can be accessed via newHalfedges[i]->vertex()->position for
@@ -582,17 +693,17 @@ void HalfedgeMesh::bevelEdgeComputeNewPositions(
   //    position correponding to vertex i
   // }
   //
-
 }
 
-void HalfedgeMesh::splitPolygons(vector<FaceIter>& fcs) {
-  for (auto f : fcs) splitPolygon(f);
+void HalfedgeMesh::splitPolygons(vector<FaceIter> &fcs) {
+  for (auto f : fcs)
+    splitPolygon(f);
 }
 
 void HalfedgeMesh::splitPolygon(FaceIter f) {
-  // TODO: (meshedit) 
+  // TODO: (meshedit)
   // Triangulate a polygonal face
-//  cout << "I'm here! " << f->degree() << endl;
+  //  cout << "I'm here! " << f->degree() << endl;
 
   // Get vertices.
   std::vector<VertexIter> v_list;
@@ -604,10 +715,10 @@ void HalfedgeMesh::splitPolygon(FaceIter f) {
     e_list.push_back(h->edge());
     he_list.push_back(h);
     h = h->next();
-  } while(h != f->halfedge());
+  } while (h != f->halfedge());
 
   const int nv = v_list.size();
-  if(nv == 3) {
+  if (nv == 3) {
     return;
   }
 
@@ -615,7 +726,7 @@ void HalfedgeMesh::splitPolygon(FaceIter f) {
   HalfedgeIter current_he = f->halfedge();
 
   HalfedgeIter h0n, h1n;
-  for(int i = 2; i < nv - 1; i++) {
+  for (int i = 2; i < nv - 1; i++) {
     auto en = newEdge();
     auto fn = newFace();
     h0n = newHalfedge();
@@ -635,7 +746,7 @@ void HalfedgeMesh::splitPolygon(FaceIter f) {
 
     en->halfedge() = h0n;
     fn->halfedge() = h1n;
-    he_list[i-1]->next() = h0n;
+    he_list[i - 1]->next() = h0n;
     he_list[nv - 1]->next() = h1n;
 
     current_face = fn;
@@ -643,7 +754,7 @@ void HalfedgeMesh::splitPolygon(FaceIter f) {
   }
 }
 
-EdgeRecord::EdgeRecord(EdgeIter& _edge) : edge(_edge) {
+EdgeRecord::EdgeRecord(EdgeIter &_edge) : edge(_edge) {
   // TODO: (meshEdit)
   // Compute the combined quadric from the edge endpoints.
   // -> Build the 3x3 linear system whose solution minimizes the quadric error
@@ -652,9 +763,39 @@ EdgeRecord::EdgeRecord(EdgeIter& _edge) : edge(_edge) {
   //    EdgeRecord::optimalPoint.
   // -> Also store the cost associated with collapsing this edg in
   //    EdgeRecord::Cost.
+  auto v0 = edge->halfedge()->vertex();
+  auto v1 = edge->halfedge()->twin()->vertex();
+  Matrix3x3 B;
+  B.zero();
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      B(i, j) += v0->quadric(i, j);
+      B(i, j) += v1->quadric(i, j);
+    }
+  }
+
+  Vector3D w;
+  for(int i = 0; i < 3; i++) {
+    w[i] += v0->quadric(i, 3);
+    w[i] += v1->quadric(i, 3);
+  }
+
+  double d2 = v0->quadric(3, 3) + v1->quadric(3, 3);
+
+  auto x = -B.inv() * w;
+  optimalPoint = x;
+  score = dot(x, B * x) + 2 * dot(w, x) + d2;
+//  cout << v0->quadric + v1->quadric << endl;
+//  cout << B << endl;
+//  cout << w << endl;
+//  cout << "v0: " << v0->position << endl;
+//  cout << "v1: " << v1->position << endl;
+//  cout << "x: " << x << endl;
+//  cout << "B_det: " << B.det() << endl;
+//  cout << "score: " << score << endl << endl;
 }
 
-void MeshResampler::upsample(HalfedgeMesh& mesh)
+void MeshResampler::upsample(HalfedgeMesh &mesh)
 // This routine should increase the number of triangles in the mesh using Loop
 // subdivision.
 {
@@ -707,7 +848,7 @@ void MeshResampler::upsample(HalfedgeMesh& mesh)
   showError("upsample() not implemented.");
 }
 
-void MeshResampler::downsample(HalfedgeMesh& mesh) {
+void MeshResampler::downsample(HalfedgeMesh &mesh) {
   // TODO: (meshEdit)
   // Compute initial quadrics for each face by simply writing the plane equation
   // for the face in homogeneous coordinates. These quadrics should be stored
@@ -723,10 +864,89 @@ void MeshResampler::downsample(HalfedgeMesh& mesh) {
   //    the collapsed vertex AFTER it's been collapsed. Also remember to assign
   //    a quadric to the collapsed vertex, and to pop the collapsed edge off the
   //    top of the queue.
-  showError("downsample() not implemented.");
+
+  int triangle_count = 0;
+  for(auto face = mesh.facesBegin(); face != mesh.facesEnd(); face++) {
+    const Vector3D& p = face->halfedge()->vertex()->position;
+    Vector3D n = face->normal();
+    Vector4D v(n, -dot(p, n));
+    face->quadric = outer(v, v);
+    triangle_count++;
+  }
+
+  for (auto vertex = mesh.verticesBegin(); vertex != mesh.verticesEnd();
+       vertex++) {
+    vertex->quadric.zero();
+    auto v_flist = findFaceForVertex(vertex);
+    for(auto& f : v_flist) {
+      vertex->quadric += f->quadric;
+    }
+  }
+
+  MutablePriorityQueue<EdgeRecord> queue;
+  for (auto edge = mesh.edgesBegin(); edge != mesh.edgesEnd(); edge++) {
+    edge->record = EdgeRecord(edge);
+    queue.insert(edge->record);
+  }
+
+  int current_triangle_count = triangle_count;
+  while(current_triangle_count > 0.25 * triangle_count) {
+    // 1. Get the cheapest edge from the queue.
+    const EdgeRecord er = queue.top();
+    auto e = er.edge;
+    auto v0 = e->halfedge()->vertex();
+    auto v1 = e->halfedge()->twin()->vertex();
+
+    // 2. Remove the cheapest edge from the queue by calling pop().
+    queue.pop();
+
+    // 3. Compute the new quadric by summing the quadrics at its two endpoints.
+    Matrix4x4 K = v0->quadric + v1->quadric;
+
+    // 4. Remove any edge touching either of its endpoints from the queue.
+    vector<vector<HalfedgeIter>> h_lists {
+        findHalfedgesForVertex(e->halfedge()),
+        findHalfedgesForVertex(e->halfedge()->twin())};
+
+    vector<EdgeIter> e_list;
+    for(auto& h_list : h_lists) {
+      for(auto h = h_list.begin() +1 ; h!= h_list.end() ;h++) {
+        e_list.push_back((*h)->edge());
+      }
+    }
+
+    for(auto& edge : e_list) {
+      queue.remove(edge->record);
+    }
+
+    // 5. Collapse the edge.
+    auto v = mesh.collapseEdge(e);
+
+    // 6. Set the quadric of the new vertex to the quadric computed in Step 3.
+    v->quadric = K;
+    v->position = er.optimalPoint;
+
+    // 7. Insert any edge touching the new vertex into the queue.
+    cout << v->degree() << endl;
+    cout << &(*v) << endl;
+    cout << v->position << endl;
+    cout << er.optimalPoint << endl;
+    cout << er.score << endl << endl;
+
+    auto h_list = findHalfedgesForVertex(v->halfedge());
+    for(auto& h : h_list) {
+      auto edge = h->edge();
+      edge->record = EdgeRecord(edge);
+      queue.insert(edge->record);
+    }
+
+    current_triangle_count -= 2;
+  }
+
+
 }
 
-void MeshResampler::resample(HalfedgeMesh& mesh) {
+void MeshResampler::resample(HalfedgeMesh &mesh) {
   // TODO: (meshEdit)
   // Compute the mean edge length.
   // Repeat the four main steps for 5 or 6 iterations
@@ -740,4 +960,4 @@ void MeshResampler::resample(HalfedgeMesh& mesh) {
   showError("resample() not implemented.");
 }
 
-}  // namespace CMU462
+} // namespace CMU462
