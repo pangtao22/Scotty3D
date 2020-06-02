@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "camera.h"
 
 #include "CMU462/misc.h"
@@ -123,8 +125,14 @@ Ray Camera::generate_ray(double x, double y) const {
   // TODO (PathTracer):
   // compute position of the input sensor sample coordinate on the
   // canonical sensor plane one unit away from the pinhole.
+  double w_sensor = 2 * std::tan(hFov / 2 / 180 * M_PI);
+  double h_sensor = 2 * std::tan(vFov / 2 / 180 * M_PI);
+  x = w_sensor * (x - 0.5);
+  y = h_sensor * (y - 0.5);
+  auto d = Vector3D(x, y, -1);
+  d.normalize();
 
-  return Ray(Vector3D(0, 0, 0), Vector3D(0, 0, 1));
+  return Ray(pos, c2w * d);
 }
 
 }  // namespace CMU462
