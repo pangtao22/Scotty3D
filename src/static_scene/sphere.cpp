@@ -8,11 +8,11 @@
 namespace CMU462 {
 namespace StaticScene {
 
-bool Sphere::test(const Ray& r, double& t1, double& t2) const {
+bool Sphere::test(const Ray& r, double& t0, double& t1) const {
   // TODO (PathTracer):
   // Implement ray - sphere intersection test.
   // Return true if there are intersections and writing the
-  // smaller of the two intersection times in t1 and the larger in t2.
+  // smaller of the two intersection times in t0 and the larger in t1.
   const double a = dot(r.d, r.d);
   const double b = 2 * dot(r.o, r.d);
   const double c =  dot(r.o, r.o) - this->r;
@@ -22,13 +22,16 @@ bool Sphere::test(const Ray& r, double& t1, double& t2) const {
     const double ta = (-b + sqrt(delta)) / 2 / a;
     const double tb = (-b - sqrt(delta)) / 2 / a;
     if (ta < tb) {
-      t1 = ta;
-      t2 = tb;
-    } else {
+      t0 = ta;
       t1 = tb;
-      t2 = ta;
+    } else {
+      t0 = tb;
+      t1 = ta;
     }
-    return true;
+    bool result = (t0 > r.min_t) && (t0 < r.max_t);
+    if(result) {
+      r.max_t = t0;
+    }
   }
 
   return false;

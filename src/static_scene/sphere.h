@@ -86,7 +86,7 @@ class Sphere : public Primitive {
    * intersections and writing the smaller of the two intersection times in t1
    * and the larger in t2.
    */
-  bool test(const Ray& ray, double& t1, double& t2) const;
+  bool test(const Ray& ray, double& t0, double& t1) const;
 
   const SphereObject* object;  ///< pointer to the sphere object
 

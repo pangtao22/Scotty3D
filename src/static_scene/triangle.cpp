@@ -62,7 +62,7 @@ bool Triangle::intersect(const Ray &r, Intersection *isect) const {
 
   const bool result = (u >= 0 && u <= 1) && (v >= 0 && v <= 1) &&
       (u + v <= 1) && (t >= r.min_t && t <= r.max_t);
-  if (t < r.max_t) {
+  if(result) {
     r.max_t = t;
   }
 

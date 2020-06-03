@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 namespace CMU462 {
 
@@ -12,8 +13,20 @@ bool BBox::intersect(const Ray &r, double &t0, double &t1) const {
   // Implement ray - bounding box intersection test
   // If the ray intersected the bounding box within the range given by
   // t0, t1, update t0 and t1 with the new intersection times.
+  t0 = -INF_D;
+  t1 = INF_D;
+  for(int i = 0; i < 3; i++) {
+    double t_min = (min[i] - r.o[i]) / r.d[i];
+    double t_max = (max[i] - r.o[i]) / r.d[i];
+    if (t_min > t0) {
+      t0 = t_min;
+    }
+    if(t_max < t1) {
+      t1 = t_max;
+    }
+  }
 
-  return false;
+  return (t0 < t1) && (t0 > r.min_t) && (t0 < r.max_t);
 }
 
 void BBox::draw(Color c) const {
