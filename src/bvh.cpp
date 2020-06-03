@@ -67,31 +67,6 @@ void computePartitionBySah(const std::vector<Primitive *> &primitives,
       *left_bb_best = left_bb;
       *right_bb_best = right_bb;
     }
-
-    //    // debug
-    //    cout << "Partition " << i << ", cost: " << cost << endl;
-    //    l_primitives->clear();
-    //    for(size_t j = 0; j <= i; j++) {
-    //      l_primitives->insert(
-    //          l_primitives->end(),
-    //          buckets[j].primitives_indices.begin(),
-    //          buckets[j].primitives_indices.end());
-    //    }
-    //
-    //    r_primitives->clear();
-    //    for(size_t j = i + 1; j < buckets.size(); j++) {
-    //      r_primitives->insert(
-    //          r_primitives->end(),
-    //          buckets[j].primitives_indices.begin(),
-    //          buckets[j].primitives_indices.end());
-    //    }
-    //    cout << "Left:";
-    //    printStlVector(*l_primitives);
-    //    cout << left_bb << endl;
-    //    cout << "Right:" << endl;
-    //    printStlVector(*r_primitives);
-    //    cout << right << endl;
-    //    cout << endl;
   }
 
   l_primitives->clear();
@@ -118,13 +93,6 @@ void divideBVHnode(std::vector<Primitive *>* primitives_ptr,
   // Find optimal left/right assignment along each axis.
   BVHNode &node_p = *node_p_ptr;
   auto &primitives = *primitives_ptr;
-
-//  cout << endl;
-//  int abc = 0;
-//  for(const auto& p : primitives) {
-//    cout << abc << " " << p->get_bbox() << endl;
-//    abc++;
-//  }
 
   const int num_buckets = 8;
   const int num_axes = 3;
@@ -158,13 +126,6 @@ void divideBVHnode(std::vector<Primitive *>* primitives_ptr,
   const auto &r_primitives = r_primitives_list[best_axis];
   const auto &l_bbox = l_bbox_best[best_axis];
   const auto &r_bbox = r_bbox_best[best_axis];
-
-//  cout << "Left:";
-//  printStlVector(l_primitives);
-//  cout << "Right:" << endl;
-//  printStlVector(r_primitives);
-//  cout << "Cost: " << sah_cost[best_axis] << endl;
-//  cout << endl;
 
   // Rearrange primitives array.
   vector<Primitive*> new_node_primitives(node_p.range);
