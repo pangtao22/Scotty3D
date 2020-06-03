@@ -15,7 +15,7 @@ namespace StaticScene {
  * object for other information such as normal, texcoord, material.
  */
 class Triangle : public Primitive {
- public:
+public:
   /**
    * Constructor.
    * Construct a mesh triangle with the given indicies into the triangle mesh.
@@ -24,14 +24,14 @@ class Triangle : public Primitive {
    * \param v2 index of triangle vertex in the mesh's attribute arrays
    * \param v3 index of triangle vertex in the mesh's attribute arrays
    */
-  Triangle(const Mesh* mesh, vector<size_t>& v);
-  Triangle(const Mesh* mesh, size_t v1, size_t v2, size_t v3);
+  Triangle(const Mesh *mesh, vector<size_t> &v);
+  Triangle(const Mesh *mesh, size_t v1, size_t v2, size_t v3);
 
   /**
    * Get the world space bounding box of the triangle.
    * \return world space bounding box of the triangle
    */
-  BBox get_bbox() const;
+  BBox get_bbox() const override;
 
   /**
    * Ray - Triangle intersection.
@@ -41,7 +41,7 @@ class Triangle : public Primitive {
    * \return true if the given ray intersects with the triangle,
              false otherwise
    */
-  bool intersect(const Ray& r) const;
+  bool intersect(const Ray &r) const override;
 
   /**
    * Ray - Triangle intersection 2.
@@ -53,37 +53,45 @@ class Triangle : public Primitive {
    * \return true if the given ray intersects with the triangle,
              false otherwise
    */
-  bool intersect(const Ray& r, Intersection* i) const;
+  bool intersect(const Ray &r, Intersection *i) const override;
 
   /**
    * Get BSDF.
    * In the case of a triangle, the surface material BSDF is stored in
    * the mesh it belongs to.
    */
-  BSDF* get_bsdf() const { return mesh->get_bsdf(); }
+  BSDF *get_bsdf() const override { return mesh->get_bsdf(); }
 
   /**
    * Draw with OpenGL (for visualizer)
    */
-  void draw(const Color& c) const;
+  void draw(const Color &c) const override;
 
   /**
    * Draw outline with OpenGL (for visualizer)
    */
-  void drawOutline(const Color& c) const;
+  void drawOutline(const Color &c) const override;
 
- private:
-  const Mesh* mesh;  ///< pointer to the mesh the triangle is a part of
+  /**
+   * Centroid.
+   */
+  Vector3D get_centroid() const override {
+    return (mesh->positions[v1] + mesh->positions[v2] + mesh->positions[v3]) /
+           3;
+  }
 
-  size_t v1;  ///< index into the mesh attribute arrays
-  size_t v2;  ///< index into the mesh attribute arrays
-  size_t v3;  ///< index into the mesh attribute arrays
+private:
+  const Mesh *mesh; ///< pointer to the mesh the triangle is a part of
+
+  size_t v1; ///< index into the mesh attribute arrays
+  size_t v2; ///< index into the mesh attribute arrays
+  size_t v3; ///< index into the mesh attribute arrays
 
   vector<size_t> v;
 
-};  // class Triangle
+}; // class Triangle
 
-}  // namespace StaticScene
-}  // namespace CMU462
+} // namespace StaticScene
+} // namespace CMU462
 
-#endif  // CMU462_STATICSCENE_TRIANGLE_H
+#endif // CMU462_STATICSCENE_TRIANGLE_H

@@ -61,6 +61,10 @@ class Primitive {
    * \param c desired highlight color
    */
   virtual void drawOutline(const Color& c) const = 0;
+
+  virtual Vector3D get_centroid() const {
+    return get_bbox().centroid();
+  };
 };
 
 }  // namespace StaticScene

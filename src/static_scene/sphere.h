@@ -27,7 +27,7 @@ class Sphere : public Primitive {
    * Get the world space bounding box of the sphere.
    * \return world space bounding box of the sphere
    */
-  BBox get_bbox() const {
+  BBox get_bbox() const override{
     return BBox(o - Vector3D(r, r, r), o + Vector3D(r, r, r));
   }
 
@@ -39,7 +39,7 @@ class Sphere : public Primitive {
    * \return true if the given ray intersects with the sphere,
              false otherwise
    */
-  bool intersect(const Ray& r) const;
+  bool intersect(const Ray& r) const override;
 
   /**
    * Ray - Sphere intersection 2.
@@ -51,14 +51,14 @@ class Sphere : public Primitive {
    * \return true if the given ray intersects with the sphere,
              false otherwise
    */
-  bool intersect(const Ray& r, Intersection* i) const;
+  bool intersect(const Ray& r, Intersection* i) const override;
 
   /**
    * Get BSDF.
    * In the case of a sphere, the surface material BSDF is stored in
    * its sphere object wrapper.
    */
-  BSDF* get_bsdf() const { return object->get_bsdf(); }
+  BSDF* get_bsdf() const override { return object->get_bsdf(); }
 
   /**
    * Compute the normal at a point of intersection.
@@ -73,12 +73,17 @@ class Sphere : public Primitive {
   /**
    * Draw with OpenGL (for visualizer)
    */
-  void draw(const Color& c) const;
+  void draw(const Color& c) const override;
 
   /**
   * Draw outline with OpenGL (for visualizer)
   */
-  void drawOutline(const Color& c) const;
+  void drawOutline(const Color& c) const override;
+
+  /**
+ * Centroid.
+ */
+  Vector3D get_centroid() const override { return o; };
 
  private:
   /**

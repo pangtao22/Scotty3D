@@ -36,7 +36,7 @@ class Aggregate : public Primitive {
    * speed up ray - primitive intersections. Therefore get_brdf should always
    * return the null pointer for aggregates.
    */
-  BSDF* get_bsdf() const { return NULL; }
+  BSDF* get_bsdf() const override { return NULL; }
 };
 
 }  // namespace StaticScene
