@@ -203,11 +203,6 @@ void BVHAccel::findClosetHit(const Ray &ray, BVHNode *node,
     bool l_intersect = node->l->bb.intersect(ray, t0_l, t1_l);
     bool r_intersect = node->r->bb.intersect(ray, t0_r, t1_r);
 
-//    cout << "left BB\n" << node->l->bb << endl;
-//    cout << l_intersect << " " << t0_l << " " << t1_l << endl;
-//    cout << "right BB\n" << node->r->bb << endl;
-//    cout << r_intersect << " " << t0_r << " " << t1_r << endl << endl;
-
     if(l_intersect && !r_intersect) {
       findClosetHit(ray, node->l, closest);
       return;
@@ -241,15 +236,7 @@ bool BVHAccel::intersect(const Ray &ray, Intersection *isect) const {
   // You should store the non-aggregate primitive in the intersection data
   // and not the BVH aggregate itself.
 
-//  BBox bb(Vector3D(-0.5, -0.5, -0.5),
-//      Vector3D(-0.5, 0.5, 0.5));
-//  Ray r(Vector3D(-1, 0, 0), Vector3D(1.5, 0.3, 0));
-//  double t0, t1;
-//  bb.intersect(r, t0, t1);
-
   findClosetHit(ray, root, isect);
-//  cout << isect->t << " " << isect->primitive << endl;
-//  cout << endl;
   return isect->primitive != nullptr;
 }
 
@@ -260,14 +247,6 @@ bool BVHAccel::intersect(const Ray &ray) const {
   // the BVH that is not an aggregate.
   Intersection isect;
   return intersect(ray, &isect);
-
-//  bool hit = false;
-//  for (size_t p = 0; p < primitives.size(); ++p) {
-//    if (primitives[p]->intersect(ray))
-//      hit = true;
-//  }
-//
-//  return hit;
 }
 
 } // namespace StaticScene

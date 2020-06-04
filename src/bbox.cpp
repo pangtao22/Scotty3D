@@ -19,11 +19,6 @@ bool BBox::intersect(const Ray &r, double &t0, double &t1) const {
   t0 = -INF_D;
   t1 = INF_D;
 
-//  cout << endl;
-//  cout << *this << endl;
-//  cout << r.o << endl;
-//  cout << r.d << endl;
-
   for(int i = 0; i < 3; i++) {
 
     double ta = (min[i] - r.o[i]) / r.d[i];
@@ -36,11 +31,9 @@ bool BBox::intersect(const Ray &r, double &t0, double &t1) const {
     if(t_max < t1) {
       t1 = t_max;
     }
-//    cout << i << " " << t_min << " " << t_max << " " << t0 << " " << t1 << endl;
   }
   bool result = (t0 - std::numeric_limits<double>::epsilon() <= t1)
       && (t0 >= r.min_t) && (t0 <= r.max_t);
-//  cout << result << endl;
   return result;
 }
 
