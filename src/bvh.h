@@ -33,6 +33,15 @@ struct BVHNode {
 };
 
 /**
+ * Custom structures.
+ */
+struct Bucket {
+  BBox bbox;
+  std::vector<size_t> primitives_indices;
+};
+
+
+/**
  * Bounding Volume Hierarchy for fast Ray - Primitive intersection.
  * Note that the BVHAccel is an Aggregate (A Primitive itself) that contains
  * all the primitives it was built from. Therefore once a BVHAccel Aggregate
@@ -51,7 +60,8 @@ class BVHAccel : public Aggregate {
    * \param primitives primitives to build from
    * \param max_leaf_size maximum number of primitives to be stored in leaves
    */
-  BVHAccel(const std::vector<Primitive*>& primitives, size_t max_leaf_size = 4);
+  explicit BVHAccel(
+      const std::vector<Primitive*>& primitives, size_t max_leaf_size = 4);
 
   /**
    * Destructor.
@@ -64,7 +74,7 @@ class BVHAccel : public Aggregate {
    * Get the world space bounding box of the aggregate.
    * \return world space bounding box of the aggregate
    */
-  BBox get_bbox() const;
+  BBox get_bbox() const override;
 
   /**
    * Ray - Aggregate intersection.
@@ -74,7 +84,7 @@ class BVHAccel : public Aggregate {
    * \return true if the given ray intersects with the aggregate,
              false otherwise
    */
-  bool intersect(const Ray& r) const;
+  bool intersect(const Ray& r) const override;
 
   /**
    * Ray - Aggregate intersection 2.
@@ -89,7 +99,7 @@ class BVHAccel : public Aggregate {
    * \return true if the given ray intersects with the aggregate,
              false otherwise
    */
-  bool intersect(const Ray& r, Intersection* i) const;
+  bool intersect(const Ray& r, Intersection* i) const override;
 
   /**
    * Get BSDF of the surface material
@@ -97,7 +107,7 @@ class BVHAccel : public Aggregate {
    * because it does not have a surface material. Therefore this
    * should always return a null pointer.
    */
-  BSDF* get_bsdf() const { return NULL; }
+  BSDF* get_bsdf() const override { return NULL; }
 
   /**
    * Get entry point (root) - used in visualizer
@@ -107,12 +117,18 @@ class BVHAccel : public Aggregate {
   /**
    * Draw the BVH with OpenGL - used in visualizer
    */
-  void draw(const Color& c) const {}
+  void draw(const Color& c) const override {}
 
   /**
    * Draw the BVH outline with OpenGL - used in visualizer
    */
-  void drawOutline(const Color& c) const {}
+  void drawOutline(const Color& c) const override {}
+
+  /**
+   * As defined in the lecture notes on Spatial data structures.
+   */
+  void findClosetHit(const Ray& ray, BVHNode* node,
+                     Intersection *isect, Intersection *closest) const;
 
  private:
   BVHNode* root;  ///< root node of the BVH

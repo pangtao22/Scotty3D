@@ -13,6 +13,10 @@ namespace StaticScene {
 
 int computeBucket(int axis, int num_buckets, double coordinate,
                   const BBox &bb) {
+  if (num_buckets == 1) {
+    return 0;
+  }
+
   const double delta = bb.extent[axis] / num_buckets;
 
   int idx_bucket;
@@ -32,17 +36,12 @@ template <class T> void printStlVector(const vector<T> &v) {
   cout << endl;
 }
 
-struct Bucket {
-  BBox bbox;
-  vector<size_t> primitives_indices;
-};
-
 void computePartitionBySah(const std::vector<Primitive *> &primitives,
                            const std::vector<Bucket> &buckets,
                            const BBox &bb_parent, size_t *min_idx,
                            double *min_cost, vector<size_t> *l_primitives,
-                           vector<size_t> *r_primitives,
-                           BBox* left_bb_best, BBox* right_bb_best) {
+                           vector<size_t> *r_primitives, BBox *left_bb_best,
+                           BBox *right_bb_best) {
   const double Sn = bb_parent.surface_area();
   *min_cost = INF_D;
   *min_idx = 0;
@@ -84,9 +83,9 @@ void computePartitionBySah(const std::vector<Primitive *> &primitives,
   }
 }
 
-void divideBVHnode(std::vector<Primitive *>* primitives_ptr,
-    size_t max_leaf_size, const BBox& bb, BVHNode* node_p_ptr) {
-  if(node_p_ptr->range <= max_leaf_size) {
+void divideBVHnode(std::vector<Primitive *> *primitives_ptr,
+                   size_t max_leaf_size, const BBox &bb, BVHNode *node_p_ptr) {
+  if (node_p_ptr->range <= max_leaf_size) {
     return;
   }
 
@@ -103,9 +102,15 @@ void divideBVHnode(std::vector<Primitive *>* primitives_ptr,
   vector<BBox> l_bbox_best(num_axes);
   vector<BBox> r_bbox_best(num_axes);
 
+//  cout << bb << endl;
+
   for (int axis = 0; axis < num_axes; axis++) {
+    if(bb.extent[axis] < std::numeric_limits<double>::epsilon()) {
+      sah_cost[axis] = INF_D;
+      continue;
+    }
     vector<Bucket> buckets(num_buckets);
-//    cout << "xyz: " << axis << endl;
+    //    cout << "xyz: " << axis << endl;
     for (int p = node_p.start; p < node_p.start + node_p.range; p++) {
       int idx_bucket = computeBucket(axis, num_buckets,
                                      primitives[p]->get_centroid()[axis], bb);
@@ -128,26 +133,24 @@ void divideBVHnode(std::vector<Primitive *>* primitives_ptr,
   const auto &r_bbox = r_bbox_best[best_axis];
 
   // Rearrange primitives array.
-  vector<Primitive*> new_node_primitives(node_p.range);
+  vector<Primitive *> new_node_primitives(node_p.range);
   int idx = 0;
-  for(const auto i : l_primitives) {
+  for (const auto i : l_primitives) {
     new_node_primitives[idx] = primitives[i];
     idx++;
   }
-  for(const auto i : r_primitives) {
+  for (const auto i : r_primitives) {
     new_node_primitives[idx] = primitives[i];
     idx++;
   }
 
-  for(size_t i = 0; i < node_p.range; i++) {
+  for (size_t i = 0; i < node_p.range; i++) {
     primitives[i + node_p.start] = new_node_primitives[i];
   }
 
   // Create new nodes
-  node_p.l = new BVHNode(l_bbox, node_p.start,
-                         l_primitives.size());
-  node_p.r = new BVHNode(r_bbox,
-                         node_p.start + l_primitives.size(),
+  node_p.l = new BVHNode(l_bbox, node_p.start, l_primitives.size());
+  node_p.r = new BVHNode(r_bbox, node_p.start + l_primitives.size(),
                          r_primitives.size());
 
   // Continue to divide.
@@ -173,7 +176,6 @@ BVHAccel::BVHAccel(const std::vector<Primitive *> &_primitives,
   root = new BVHNode(bb, 0, primitives.size());
 
   divideBVHnode(&primitives, max_leaf_size, bb, root);
-
 }
 
 BVHAccel::~BVHAccel() {
@@ -183,19 +185,33 @@ BVHAccel::~BVHAccel() {
 
 BBox BVHAccel::get_bbox() const { return root->bb; }
 
-bool BVHAccel::intersect(const Ray &ray) const {
-  // TODO (PathTracer):
-  // Implement ray - bvh aggregate intersection test. A ray intersects
-  // with a BVH aggregate if and only if it intersects a primitive in
-  // the BVH that is not an aggregate.
+void BVHAccel::findClosetHit(const Ray &ray, BVHNode *node,
+                             Intersection *isect,
+                             Intersection *closest) const {
+  if (node->isLeaf()) {
+    for (auto &p : primitives) {
+      bool hit = p->intersect(ray, isect);
+      if (hit && isect->t < closest->t) {
+        closest->primitive = p;
+        closest->t = isect->t;
+      }
+    }
+  } else {
 
-  bool hit = false;
-  for (size_t p = 0; p < primitives.size(); ++p) {
-    if (primitives[p]->intersect(ray))
-      hit = true;
+    double t0_l, t1_l, t0_r, t1_r;
+    node->l->bb.intersect(ray, t0_l, t1_l);
+    node->r->bb.intersect(ray, t0_r, t1_r);
+
+    BVHNode *first = t0_l <= t0_r ? node->l : node->r;
+    BVHNode *second = t0_l <= t0_r ? node->r : node->l;
+//    double t_first = t0_l <= t0_r ? t0_l : t0_r;
+    double t_second = t0_l <= t0_r ? t0_r : t0_l;
+
+    findClosetHit(ray, first, isect, closest);
+    if(t_second < closest->t) {
+      findClosetHit(ray, second, isect, closest);
+    }
   }
-
-  return hit;
 }
 
 bool BVHAccel::intersect(const Ray &ray, Intersection *isect) const {
@@ -206,13 +222,34 @@ bool BVHAccel::intersect(const Ray &ray, Intersection *isect) const {
   // You should store the non-aggregate primitive in the intersection data
   // and not the BVH aggregate itself.
 
-  bool hit = false;
-  for (size_t p = 0; p < primitives.size(); ++p) {
-    if (primitives[p]->intersect(ray, isect))
-      hit = true;
-  }
+  Intersection closest;
+  findClosetHit(ray, root, isect, &closest);
 
-  return hit;
+  return closest.primitive != nullptr;
+//  bool hit = false;
+//  for (size_t p = 0; p < primitives.size(); ++p) {
+//    if (primitives[p]->intersect(ray, isect))
+//      hit = true;
+//  }
+//
+//  return hit;
+}
+
+bool BVHAccel::intersect(const Ray &ray) const {
+  // TODO (PathTracer):
+  // Implement ray - bvh aggregate intersection test. A ray intersects
+  // with a BVH aggregate if and only if it intersects a primitive in
+  // the BVH that is not an aggregate.
+  Intersection isect;
+  return intersect(ray, &isect);
+
+//  bool hit = false;
+//  for (size_t p = 0; p < primitives.size(); ++p) {
+//    if (primitives[p]->intersect(ray))
+//      hit = true;
+//  }
+//
+//  return hit;
 }
 
 } // namespace StaticScene
