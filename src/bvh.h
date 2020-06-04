@@ -1,8 +1,8 @@
 #ifndef CMU462_BVH_H
 #define CMU462_BVH_H
 
-#include "static_scene/scene.h"
 #include "static_scene/aggregate.h"
+#include "static_scene/scene.h"
 
 #include <vector>
 
@@ -25,11 +25,11 @@ struct BVHNode {
 
   inline bool isLeaf() const { return l == NULL && r == NULL; }
 
-  BBox bb;       ///< bounding box of the node
-  size_t start;  ///< start index into the primitive list
-  size_t range;  ///< range of index into the primitive list
-  BVHNode* l;    ///< left child node
-  BVHNode* r;    ///< right child node
+  BBox bb;      ///< bounding box of the node
+  size_t start; ///< start index into the primitive list
+  size_t range; ///< range of index into the primitive list
+  BVHNode *l;   ///< left child node
+  BVHNode *r;   ///< right child node
 };
 
 /**
@@ -40,7 +40,6 @@ struct Bucket {
   std::vector<size_t> primitives_indices;
 };
 
-
 /**
  * Bounding Volume Hierarchy for fast Ray - Primitive intersection.
  * Note that the BVHAccel is an Aggregate (A Primitive itself) that contains
@@ -49,7 +48,7 @@ struct Bucket {
  * during ray intersection tests as they are contained in the aggregate.
  */
 class BVHAccel : public Aggregate {
- public:
+public:
   BVHAccel() {}
 
   /**
@@ -60,8 +59,8 @@ class BVHAccel : public Aggregate {
    * \param primitives primitives to build from
    * \param max_leaf_size maximum number of primitives to be stored in leaves
    */
-  explicit BVHAccel(
-      const std::vector<Primitive*>& primitives, size_t max_leaf_size = 4);
+  explicit BVHAccel(const std::vector<Primitive *> &primitives,
+                    size_t max_leaf_size = 4);
 
   /**
    * Destructor.
@@ -84,7 +83,7 @@ class BVHAccel : public Aggregate {
    * \return true if the given ray intersects with the aggregate,
              false otherwise
    */
-  bool intersect(const Ray& r) const override;
+  bool intersect(const Ray &r) const override;
 
   /**
    * Ray - Aggregate intersection 2.
@@ -99,7 +98,7 @@ class BVHAccel : public Aggregate {
    * \return true if the given ray intersects with the aggregate,
              false otherwise
    */
-  bool intersect(const Ray& r, Intersection* i) const override;
+  bool intersect(const Ray &r, Intersection *i) const override;
 
   /**
    * Get BSDF of the surface material
@@ -107,34 +106,34 @@ class BVHAccel : public Aggregate {
    * because it does not have a surface material. Therefore this
    * should always return a null pointer.
    */
-  BSDF* get_bsdf() const override { return NULL; }
+  BSDF *get_bsdf() const override { return NULL; }
 
   /**
    * Get entry point (root) - used in visualizer
    */
-  BVHNode* get_root() const { return root; }
+  BVHNode *get_root() const { return root; }
 
   /**
    * Draw the BVH with OpenGL - used in visualizer
    */
-  void draw(const Color& c) const override {}
+  void draw(const Color &c) const override {}
 
   /**
    * Draw the BVH outline with OpenGL - used in visualizer
    */
-  void drawOutline(const Color& c) const override {}
+  void drawOutline(const Color &c) const override {}
 
   /**
    * As defined in the lecture notes on Spatial data structures.
    */
-  void findClosetHit(const Ray& ray, BVHNode* node,
-                     Intersection *isect, Intersection *closest) const;
+  void findClosetHit(const Ray &ray, BVHNode *node,
+                     Intersection *closest) const;
 
- private:
-  BVHNode* root;  ///< root node of the BVH
+private:
+  BVHNode *root; ///< root node of the BVH
 };
 
-}  // namespace StaticScene
-}  // namespace CMU462
+} // namespace StaticScene
+} // namespace CMU462
 
-#endif  // CMU462_BVH_H
+#endif // CMU462_BVH_H
