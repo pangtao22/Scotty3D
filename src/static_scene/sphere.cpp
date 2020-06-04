@@ -13,10 +13,12 @@ bool Sphere::test(const Ray& r, double& t0, double& t1) const {
   // Implement ray - sphere intersection test.
   // Return true if there are intersections and writing the
   // smaller of the two intersection times in t0 and the larger in t1.
+  const Vector3D origin = r.o - o;
   const double a = dot(r.d, r.d);
-  const double b = 2 * dot(r.o, r.d);
-  const double c =  dot(r.o, r.o) - this->r;
+  const double b = 2 * dot(origin, r.d);
+  const double c =  dot(origin, origin) - this->r;
   const double delta = b * b - 4 * a * c;
+  bool result = false;
 
   if (delta >= 0) {
     const double ta = (-b + sqrt(delta)) / 2 / a;
@@ -28,13 +30,18 @@ bool Sphere::test(const Ray& r, double& t0, double& t1) const {
       t0 = tb;
       t1 = ta;
     }
-    bool result = (t0 > r.min_t) && (t0 < r.max_t);
+    result = (t0 > r.min_t) && (t0 < r.max_t);
     if(result) {
       r.max_t = t0;
     }
+//    cout << r.o << endl;
+//    cout << r.d << endl;
+//    cout << result << endl;
+//    cout << r.min_t << " " << r.max_t << endl;
+//    cout << t0 << " " << t1 << endl << endl;
   }
 
-  return false;
+  return result;
 }
 
 bool Sphere::intersect(const Ray& r) const {
@@ -53,15 +60,12 @@ bool Sphere::intersect(const Ray& r, Intersection* isect) const {
   // correspondingly.
   double t1, t2;
   if(test(r, t1, t2)) {
-    auto n = r.o + r.d * t1 - o;
-    n.normalize();
     isect->t = t1;
-    isect->n = n;
+    isect->n = normal(r.o + r.d * t1);
     isect->primitive = this;
     isect->bsdf = get_bsdf();
     return true;
   }
-
 
   return false;
 }
