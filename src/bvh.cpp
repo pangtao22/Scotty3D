@@ -186,31 +186,50 @@ BVHAccel::~BVHAccel() {
 BBox BVHAccel::get_bbox() const { return root->bb; }
 
 void BVHAccel::findClosetHit(const Ray &ray, BVHNode *node,
-                             Intersection *isect,
                              Intersection *closest) const {
+  Intersection buffer;
   if (node->isLeaf()) {
     for (auto &p : primitives) {
-      bool hit = p->intersect(ray, isect);
-      if (hit && isect->t < closest->t) {
+      bool hit = p->intersect(ray, &buffer);
+      if (hit && buffer.t < closest->t) {
         closest->primitive = p;
-        closest->t = isect->t;
+        closest->t = buffer.t;
+        closest->n = buffer.n;
+        closest->bsdf = buffer.bsdf;
       }
     }
   } else {
-
     double t0_l, t1_l, t0_r, t1_r;
-    node->l->bb.intersect(ray, t0_l, t1_l);
-    node->r->bb.intersect(ray, t0_r, t1_r);
+    bool l_intersect = node->l->bb.intersect(ray, t0_l, t1_l);
+    bool r_intersect = node->r->bb.intersect(ray, t0_r, t1_r);
 
-    BVHNode *first = t0_l <= t0_r ? node->l : node->r;
-    BVHNode *second = t0_l <= t0_r ? node->r : node->l;
-//    double t_first = t0_l <= t0_r ? t0_l : t0_r;
-    double t_second = t0_l <= t0_r ? t0_r : t0_l;
+//    cout << "left BB\n" << node->l->bb << endl;
+//    cout << l_intersect << " " << t0_l << " " << t1_l << endl;
+//    cout << "right BB\n" << node->r->bb << endl;
+//    cout << r_intersect << " " << t0_r << " " << t1_r << endl << endl;
 
-    findClosetHit(ray, first, isect, closest);
-    if(t_second < closest->t) {
-      findClosetHit(ray, second, isect, closest);
+    if(l_intersect && !r_intersect) {
+      findClosetHit(ray, node->l, closest);
+      return;
     }
+
+    if (!l_intersect && r_intersect) {
+      findClosetHit(ray, node->r, closest);
+      return;
+    }
+
+    if (l_intersect && r_intersect) {
+      BVHNode *first = t0_l <= t0_r ? node->l : node->r;
+      BVHNode *second = t0_l <= t0_r ? node->r : node->l;
+//    double t_first = t0_l <= t0_r ? t0_l : t0_r;
+      double t_second = t0_l <= t0_r ? t0_r : t0_l;
+
+      findClosetHit(ray, first, closest);
+      if(t_second < closest->t) {
+        findClosetHit(ray, second, closest);
+      }
+    }
+
   }
 }
 
@@ -222,17 +241,16 @@ bool BVHAccel::intersect(const Ray &ray, Intersection *isect) const {
   // You should store the non-aggregate primitive in the intersection data
   // and not the BVH aggregate itself.
 
-  Intersection closest;
-  findClosetHit(ray, root, isect, &closest);
+//  BBox bb(Vector3D(-0.5, -0.5, -0.5),
+//      Vector3D(-0.5, 0.5, 0.5));
+//  Ray r(Vector3D(-1, 0, 0), Vector3D(1.5, 0.3, 0));
+//  double t0, t1;
+//  bb.intersect(r, t0, t1);
 
-  return closest.primitive != nullptr;
-//  bool hit = false;
-//  for (size_t p = 0; p < primitives.size(); ++p) {
-//    if (primitives[p]->intersect(ray, isect))
-//      hit = true;
-//  }
-//
-//  return hit;
+  findClosetHit(ray, root, isect);
+//  cout << isect->t << " " << isect->primitive << endl;
+//  cout << endl;
+  return isect->primitive != nullptr;
 }
 
 bool BVHAccel::intersect(const Ray &ray) const {

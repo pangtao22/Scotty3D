@@ -8,6 +8,9 @@
 
 namespace CMU462 {
 
+using std::cout;
+using std::endl;
+
 bool BBox::intersect(const Ray &r, double &t0, double &t1) const {
   // TODO (PathTracer):
   // Implement ray - bounding box intersection test
@@ -15,18 +18,30 @@ bool BBox::intersect(const Ray &r, double &t0, double &t1) const {
   // t0, t1, update t0 and t1 with the new intersection times.
   t0 = -INF_D;
   t1 = INF_D;
+
+//  cout << endl;
+//  cout << *this << endl;
+//  cout << r.o << endl;
+//  cout << r.d << endl;
+
   for(int i = 0; i < 3; i++) {
-    double t_min = (min[i] - r.o[i]) / r.d[i];
-    double t_max = (max[i] - r.o[i]) / r.d[i];
+
+    double ta = (min[i] - r.o[i]) / r.d[i];
+    double tb = (max[i] - r.o[i]) / r.d[i];
+    double t_min = ta < tb ? ta : tb;
+    double t_max = ta < tb ? tb : ta;
     if (t_min > t0) {
       t0 = t_min;
     }
     if(t_max < t1) {
       t1 = t_max;
     }
+//    cout << i << " " << t_min << " " << t_max << " " << t0 << " " << t1 << endl;
   }
-
-  return (t0 < t1) && (t0 > r.min_t) && (t0 < r.max_t);
+  bool result = (t0 - std::numeric_limits<double>::epsilon() <= t1)
+      && (t0 >= r.min_t) && (t0 <= r.max_t);
+//  cout << result << endl;
+  return result;
 }
 
 void BBox::draw(Color c) const {
