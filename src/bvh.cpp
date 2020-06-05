@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <stack>
+#include <stack>
 
 using namespace std;
 
@@ -189,10 +190,12 @@ void BVHAccel::findClosetHit(const Ray &ray, BVHNode *node,
                              Intersection *closest) const {
   Intersection buffer;
   if (node->isLeaf()) {
-    for (auto &p : primitives) {
-      bool hit = p->intersect(ray, &buffer);
+    size_t start = node->start;
+    size_t end = node->start + node->range;
+    for (auto p_idx = start; p_idx < end; p_idx++) {
+      bool hit = primitives[p_idx]->intersect(ray, &buffer);
       if (hit && buffer.t < closest->t) {
-        closest->primitive = p;
+        closest->primitive = primitives[p_idx];
         closest->t = buffer.t;
         closest->n = buffer.n;
         closest->bsdf = buffer.bsdf;
@@ -224,7 +227,65 @@ void BVHAccel::findClosetHit(const Ray &ray, BVHNode *node,
         findClosetHit(ray, second, closest);
       }
     }
+  }
+}
 
+void BVHAccel::findClosetHitNoRecursion(const Ray &ray,
+                             Intersection *closest) const {
+  Intersection buffer;
+  std::stack<BVHNode*> nodes_to_visit;
+  std::stack<double> t_seconds;
+  nodes_to_visit.push(root);
+  t_seconds.push(-INF_D);
+
+  while(!nodes_to_visit.empty()) {
+    auto node = nodes_to_visit.top();
+    auto t2 = t_seconds.top();
+    nodes_to_visit.pop();
+    t_seconds.pop();
+
+    if(t2 >= closest->t) {
+      continue;
+    }
+
+    if (node->isLeaf()) {
+      size_t start = node->start;
+      size_t end = node->start + node->range;
+      for (auto p_idx = start; p_idx < end; p_idx++) {
+        bool hit = primitives[p_idx]->intersect(ray, &buffer);
+        if (hit && buffer.t < closest->t) {
+          closest->primitive = primitives[p_idx];
+          closest->t = buffer.t;
+          closest->n = buffer.n;
+          closest->bsdf = buffer.bsdf;
+        }
+      }
+    } else {
+      double t0_l, t1_l, t0_r, t1_r;
+      bool l_intersect = node->l->bb.intersect(ray, t0_l, t1_l);
+      bool r_intersect = node->r->bb.intersect(ray, t0_r, t1_r);
+
+      if(l_intersect && !r_intersect) {
+        nodes_to_visit.push(node->l);
+        t_seconds.push(-INF_D);
+      }
+
+      if (!l_intersect && r_intersect) {
+        nodes_to_visit.push(node->r);
+        t_seconds.push(-INF_D);
+      }
+
+      if (l_intersect && r_intersect) {
+        BVHNode *first = t0_l <= t0_r ? node->l : node->r;
+        BVHNode *second = t0_l <= t0_r ? node->r : node->l;
+        double t_second = t0_l <= t0_r ? t0_r : t0_l;
+
+        nodes_to_visit.push(second);
+        t_seconds.push(t_second);
+        nodes_to_visit.push(first);
+        t_seconds.push(-INF_D);
+      }
+    }
   }
 }
 
@@ -236,7 +297,9 @@ bool BVHAccel::intersect(const Ray &ray, Intersection *isect) const {
   // You should store the non-aggregate primitive in the intersection data
   // and not the BVH aggregate itself.
 
+  isect->t = INF_D;
   findClosetHit(ray, root, isect);
+//  findClosetHitNoRecursion(ray, isect);
   return isect->primitive != nullptr;
 }
 

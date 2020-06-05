@@ -128,6 +128,8 @@ public:
    */
   void findClosetHit(const Ray &ray, BVHNode *node,
                      Intersection *closest) const;
+  void findClosetHitNoRecursion(const Ray &ray, Intersection *closest) const;
+
 
 private:
   BVHNode *root; ///< root node of the BVH
