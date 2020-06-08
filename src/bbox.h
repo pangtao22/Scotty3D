@@ -128,6 +128,11 @@ struct BBox {
     * \param c color of the wireframe
     */
   void draw(Color c) const;
+
+  /**
+   * Inside Bbox?
+   */
+   bool isInside(const Vector3D& v) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const BBox &b);

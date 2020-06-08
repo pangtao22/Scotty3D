@@ -11,16 +11,27 @@ namespace CMU462 {
 using std::cout;
 using std::endl;
 
+bool BBox::isInside(const Vector3D& v) const {
+  bool is_inside= true;
+  for(int i = 0; i < 3; i++) {
+    is_inside *= v[i] <= max[i] + EPS_D && v[i] >= min[i] - EPS_D;
+  }
+  return is_inside;
+}
+
+
 bool BBox::intersect(const Ray &r, double &t0, double &t1) const {
   // TODO (PathTracer):
   // Implement ray - bounding box intersection test
   // If the ray intersected the bounding box within the range given by
   // t0, t1, update t0 and t1 with the new intersection times.
+  if(isInside(r.o)) {
+    return true;
+  }
   t0 = -INF_D;
   t1 = INF_D;
 
   for(int i = 0; i < 3; i++) {
-
     double ta = (min[i] - r.o[i]) / r.d[i];
     double tb = (max[i] - r.o[i]) / r.d[i];
     double t_min = ta < tb ? ta : tb;

@@ -16,7 +16,7 @@ bool Sphere::test(const Ray& r, double& t0, double& t1) const {
   const Vector3D origin = r.o - o;
   const double a = dot(r.d, r.d);
   const double b = 2 * dot(origin, r.d);
-  const double c =  dot(origin, origin) - this->r;
+  const double c =  dot(origin, origin) - this->r * this->r;
   const double delta = b * b - 4 * a * c;
   bool result = false;
 

@@ -219,11 +219,10 @@ void BVHAccel::findClosetHit(const Ray &ray, BVHNode *node,
     if (l_intersect && r_intersect) {
       BVHNode *first = t0_l <= t0_r ? node->l : node->r;
       BVHNode *second = t0_l <= t0_r ? node->r : node->l;
-//    double t_first = t0_l <= t0_r ? t0_l : t0_r;
       double t_second = t0_l <= t0_r ? t0_r : t0_l;
 
       findClosetHit(ray, first, closest);
-      if(t_second < closest->t) {
+      if(t_second <= closest->t) {
         findClosetHit(ray, second, closest);
       }
     }
@@ -301,6 +300,13 @@ bool BVHAccel::intersect(const Ray &ray, Intersection *isect) const {
   findClosetHit(ray, root, isect);
 //  findClosetHitNoRecursion(ray, isect);
   return isect->primitive != nullptr;
+//  bool hit = false;
+//  for (size_t p = 0; p < primitives.size(); ++p) {
+//    if (primitives[p]->intersect(ray, isect))
+//      hit = true;
+//  }
+//
+//  return hit;
 }
 
 bool BVHAccel::intersect(const Ray &ray) const {
